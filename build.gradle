@@ -8,11 +8,16 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
 }
 
 configurations {
     embed
     compileOnly.extendsFrom embed
+    runtimeOnly.extendsFrom embed
 }
 
 loom {
@@ -27,6 +32,15 @@ loom {
     }
 }
 
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "better-bundle-test"
+        enableGameTests = false
+        enableClientGameTests = true
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
@@ -35,6 +49,9 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
     embed 'com.belerweb:pinyin4j:2.5.1'
+    if (providers.gradleProperty('mouseTweaksTest').getOrElse('true').toBoolean()) {
+        gametestRuntimeOnly 'maven.modrinth:mouse-tweaks:26.3-2.31-fabric'
+    }
 }
 
 processResources {
@@ -53,8 +70,7 @@ tasks.withType(JavaCompile).configureEach {
 java {
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
 jar {

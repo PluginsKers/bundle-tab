@@ -1,239 +1,73 @@
 package betterbundle.gui;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import betterbundle.util.BundleContentsHelper;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.HashedStack;
-import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen;
 import net.minecraft.network.protocol.game.ServerboundSelectBundleItemPacket;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
-
-import java.util.List;
-
-import betterbundle.util.BundleContentsHelper;
 
 public final class BundlePanelInteraction {
-
-    private static final int GLFW_MOD_SHIFT = 0x1;
-
     private BundlePanelInteraction() {}
 
-    private static int gridX(int leftPos) {
-        int pw = BundlePanelRenderer.panelWidth();
-        int panelX = leftPos - pw - 4;
-        return panelX + BundlePanelRenderer.PADDING
-                + BundlePanelRenderer.CAT_BAR_WIDTH + 2
-                + BundlePanelRenderer.SCROLL_BAR_WIDTH + 2;
-    }
-
-    private static int gridY(int topPos) {
-        return topPos + BundlePanelRenderer.SEARCH_BAR_HEIGHT + 3 + BundlePanelRenderer.PADDING;
-    }
-
-    private static BundlePanelRenderer.FlatItem getClickedItem(double mouseX, double mouseY,
-                                                                int leftPos, int topPos) {
-        List<BundlePanelRenderer.BundleSlotEntry> bundles = BundlePanelRenderer.getBundles();
-        if (bundles.isEmpty()) return null;
-
-        List<BundlePanelRenderer.FlatItem> allItems = BundlePanelRenderer.buildFlatItemList(bundles);
-        if (allItems.isEmpty()) return null;
-
-        // Use filtered items to match rendered panel
-        List<BundlePanelRenderer.FlatItem> items = BundlePanelRenderer.filterItems(allItems, BundlePanelRenderer.searchQuery);
-        if (items.isEmpty()) return null;
-
-        int gx = gridX(leftPos);
-        int gy = gridY(topPos);
-
-        int relX = (int) mouseX - gx;
-        int relY = (int) mouseY - gy;
-
-        int col = relX / (BundlePanelRenderer.SLOT_SIZE + BundlePanelRenderer.SLOT_SPACING);
-        int row = relY / (BundlePanelRenderer.SLOT_SIZE + BundlePanelRenderer.SLOT_SPACING);
-
-        if (col < 0 || col >= BundlePanelRenderer.COLUMNS) return null;
-        if (row < 0 || row >= BundlePanelRenderer.VISIBLE_ROWS) return null;
-
-        int flatIndex = (BundlePanelRenderer.getScrollOffset() + row) * BundlePanelRenderer.COLUMNS + col;
-        if (flatIndex >= items.size()) return null;
-        return items.get(flatIndex);
-    }
-
-    public static boolean handlePanelClick(double mouseX, double mouseY, int button, int modifiers,
-                                            int leftPos, int topPos,
-                                            net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen) {
-        BundlePanelRenderer.FlatItem clicked = getClickedItem(mouseX, mouseY, leftPos, topPos);
-        if (clicked == null) return false;
-
+    public static void clickSlot(Slot slot, int button) {
         Minecraft client = Minecraft.getInstance();
-        Player player = client.player;
-        if (player == null) return false;
-
-        ClientPacketListener connection = client.getConnection();
-        if (connection == null) return false;
-
-        int bundleSlot = clicked.bundleSlot();
-        int containerId = player.containerMenu.containerId;
-        boolean shiftDown = (modifiers & GLFW_MOD_SHIFT) != 0;
-
-        if (shiftDown) {
-            boolean inContainer = !(screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen);
-            int emptySlot;
-            if (button == 0 && inContainer) {
-                emptySlot = findEmptyContainerSlot(player) >= 0
-                        ? findEmptyContainerSlot(player) : findEmptyPlayerSlot(player);
-            } else {
-                emptySlot = findEmptyPlayerSlot(player);
-            }
-            if (emptySlot < 0) return true;
-
-            int count = clicked.stack().getCount();
-            for (int i = 0; i < count; i++) {
-                connection.send(new ServerboundSelectBundleItemPacket(bundleSlot, clicked.itemIndex()));
-                connection.send(makeClickPacket(containerId, bundleSlot, (byte) 1));
-            }
-            connection.send(makeClickPacket(containerId, emptySlot, (byte) 0));
-        } else {
-            connection.send(new ServerboundSelectBundleItemPacket(bundleSlot, clicked.itemIndex()));
-            connection.send(makeClickPacket(containerId, bundleSlot, (byte) 1));
-        }
-
-        return true;
+        if (client.player == null || client.gameMode == null || client.player.isSpectator()) return;
+        client.gameMode.handleContainerInput(client.player.containerMenu.containerId, slot.index, button,
+                ContainerInput.PICKUP, client.player);
     }
 
-    /** Find an empty slot in the open container (not the player inventory). */
-    private static int findEmptyContainerSlot(Player player) {
-        for (net.minecraft.world.inventory.Slot slot : player.containerMenu.slots) {
-            if (!slot.hasItem() && slot.container != player.getInventory()) {
-                return slot.index;
-            }
-        }
-        return -1;
-    }
-
-    public static boolean handleSpaceClick(Slot hoveredSlot) {
-        if (hoveredSlot == null || !hoveredSlot.hasItem()) return false;
-
+    public static void takeItem(Slot bundle, int itemIndex, boolean quickMove) {
         Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.getWindow() == null) return false;
+        if (client.player == null || client.getConnection() == null || client.player.isSpectator()
+                || !client.player.containerMenu.getCarried().isEmpty() || !bundle.mayPickup(client.player)) return;
+        var contents = BundleContentsHelper.contents(bundle.getItem());
+        if (itemIndex < 0 || itemIndex >= contents.size()) return;
+        if (BundleItem.getSelectedItemIndex(bundle.getItem()) != itemIndex) {
+            client.player.containerMenu.setSelectedBundleItemIndex(bundle.index, itemIndex);
+            client.getConnection().send(new ServerboundSelectBundleItemPacket(bundle.index, itemIndex));
+        }
+        clickSlot(bundle, 1);
+        if (!quickMove) return;
 
-        long window = client.getWindow().handle();
-        if (GLFW.glfwGetKey(window, GLFW.GLFW_KEY_SPACE) != GLFW.GLFW_PRESS) return false;
-
-        Player player = client.player;
-        ItemStack stack = hoveredSlot.getItem();
-        if (stack.isEmpty() || BundleContentsHelper.isNonEmptyBundle(stack)) return false;
-
-        List<BundlePanelRenderer.BundleSlotEntry> bundles = BundlePanelRenderer.getAllBundles();
-        int targetBundleSlot = -1;
-        for (BundlePanelRenderer.BundleSlotEntry entry : bundles) {
-            if (BundleContentsHelper.canFitItem(entry.bundleStack(), stack)) {
-                targetBundleSlot = entry.bundleSlot();
-                break;
+        // Use normal inventory clicks so prediction, stack limits and server validation stay vanilla.
+        for (boolean occupied : new boolean[]{true, false}) {
+            for (Slot slot : client.player.containerMenu.slots) {
+                ItemStack carried = client.player.containerMenu.getCarried();
+                if (carried.isEmpty()) return;
+                if (slot.container != client.player.getInventory() || slot.getContainerSlot() >= 36
+                        || slot.hasItem() != occupied || !slot.mayPlace(carried)) continue;
+                if (occupied && (!ItemStack.isSameItemSameComponents(slot.getItem(), carried)
+                        || slot.getItem().getCount() >= slot.getMaxStackSize(carried))) continue;
+                clickSlot(slot, 0);
             }
         }
-        if (targetBundleSlot < 0) return false;
-
-        ClientPacketListener connection = client.getConnection();
-        if (connection == null) return false;
-
-        int containerId = player.containerMenu.containerId;
-        int itemSlot = hoveredSlot.index;
-
-        connection.send(makeClickPacket(containerId, itemSlot, (byte) 0));
-        connection.send(makeClickPacket(containerId, targetBundleSlot, (byte) 0));
-
-        return true;
+        if (!client.player.containerMenu.getCarried().isEmpty()) clickSlot(bundle, 0);
     }
 
-    private static ServerboundContainerClickPacket makeClickPacket(int containerId, int slot, byte button) {
-        return new ServerboundContainerClickPacket(
-                containerId, -1, (short) slot, button,
-                ContainerInput.PICKUP, new Int2ObjectOpenHashMap<>(), HashedStack.EMPTY);
-    }
-
-    private static int findEmptyPlayerSlot(Player player) {
-        // search main inventory (getSlotIndex 9-35) then hotbar (getSlotIndex 0-8)
-        for (int pass = 0; pass < 2; pass++) {
-            int min = (pass == 0) ? 9 : 0;
-            int max = (pass == 0) ? 36 : 9;
-            for (Slot slot : player.containerMenu.slots) {
-                if (slot.container == player.getInventory() && !slot.hasItem()) {
-                    int idx = slot.getContainerSlot();
-                    if (idx >= min && idx < max) return slot.index;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private static long bulkInsertStart = 0;
-    private static final long BULK_INSERT_DELAY = 50; // 0.05s
-
-    /** Start the bulk-insert timer (called on space+left-click inside panel with empty cursor). */
-    public static void startBulkInsert() {
-        bulkInsertStart = System.currentTimeMillis();
-    }
-
-    /** Whether the bulk-insert state is active (left button held > 0.05s). */
-    public static boolean isBulkInsertActive() {
-        return bulkInsertStart > 0 && (System.currentTimeMillis() - bulkInsertStart) >= BULK_INSERT_DELAY;
-    }
-
-    /** Exit bulk-insert state. */
-    public static void stopBulkInsert() {
-        bulkInsertStart = 0;
-    }
-
-    /** Put cursor item into any available bundle.
-     *  button 0 = left (insert all), 1 = right (insert one). */
-    public static boolean handlePanelInsert(int button) {
+    public static boolean handleSpaceClick(Slot source) {
         Minecraft client = Minecraft.getInstance();
-        Player player = client.player;
-        if (player == null) return false;
-
-        ItemStack cursor = player.containerMenu.getCarried();
-        if (cursor.isEmpty()) return false;
-
-        List<BundlePanelRenderer.BundleSlotEntry> bundles = BundlePanelRenderer.getAllBundles();
-        int targetBundleSlot = -1;
-        for (BundlePanelRenderer.BundleSlotEntry entry : bundles) {
-            if (BundleContentsHelper.canFitItem(entry.bundleStack(), cursor)) {
-                targetBundleSlot = entry.bundleSlot();
-                break;
-            }
+        if (client.player == null || client.player.isSpectator() || source == null || !source.hasItem()
+                || !source.mayPickup(client.player) || !client.player.containerMenu.getCarried().isEmpty()
+                || !InputConstants.isKeyDown(InputConstants.KEY_SPACE)) return false;
+        if (BundleContentsHelper.isBundle(source.getItem()) && !BundleContentsHelper.contents(source.getItem()).isEmpty()) return false;
+        Slot target = null;
+        if (client.gui.screen() instanceof AbstractRecipeBookScreen<?> screen) {
+            var page = ((BundleRecipeBookAccess) screen.recipeBookComponent).betterbundle$getPage();
+            if (page != null) target = page.selectedBundle();
         }
-        if (targetBundleSlot < 0) return false;
-
-        ClientPacketListener connection = client.getConnection();
-        if (connection == null) return false;
-        int containerId = player.containerMenu.containerId;
-        connection.send(makeClickPacket(containerId, targetBundleSlot, (byte) button));
-        return true;
-    }
-
-    public static boolean handleScroll(double mouseX, double mouseY, double scrollDelta,
-                                        int leftPos, int topPos, int imageHeight) {
-        if (!BundlePanelRenderer.isEffectivelyVisible()) return false;
-        if (!isInsidePanel(mouseX, mouseY, leftPos, topPos, imageHeight)) return false;
-        BundlePanelRenderer.scrollBy(scrollDelta > 0 ? -1 : 1);
-        return true;
-    }
-
-    public static boolean isInsidePanel(double mouseX, double mouseY,
-                                         int leftPos, int topPos, int imageHeight) {
-        int pw = BundlePanelRenderer.panelWidth();
-        int panelX = leftPos - pw - 4;
-        int gx = gridX(leftPos);
-        if (mouseX < gx || mouseX > panelX + pw - BundlePanelRenderer.PADDING) return false;
-        int pTop = gridY(topPos);
-        int pH = BundlePanelRenderer.VISIBLE_ROWS * BundlePanelRenderer.SLOT_SIZE
-                + (BundlePanelRenderer.VISIBLE_ROWS - 1) * BundlePanelRenderer.SLOT_SPACING;
-        if (mouseY < pTop || mouseY > pTop + pH) return false;
+        if (target == null) {
+            target = BundleContentsHelper.bundleSlots(client.player).stream()
+                    .filter(slot -> slot != source && BundleContentsHelper.canFitItem(slot.getItem(), source.getItem()))
+                    .findFirst().orElse(null);
+        }
+        if (target == null || target == source || !BundleContentsHelper.canFitItem(target.getItem(), source.getItem())) return false;
+        clickSlot(source, 0);
+        clickSlot(target, 0);
+        if (!client.player.containerMenu.getCarried().isEmpty()) clickSlot(source, 0);
         return true;
     }
 }

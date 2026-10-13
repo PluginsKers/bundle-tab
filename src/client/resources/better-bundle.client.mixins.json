@@ -3,9 +3,8 @@
     "package": "betterbundle.mixin",
     "compatibilityLevel": "JAVA_25",
     "client": [
-        "InventoryScreenMixin",
         "AbstractContainerScreenMixin",
-        "AbstractRecipeBookScreenMixin",
+        "RecipeBookComponentMixin"
     ],
     "injectors": {
         "defaultRequire": 1

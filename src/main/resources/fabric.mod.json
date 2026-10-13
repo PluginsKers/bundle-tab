@@ -3,16 +3,11 @@
     "id": "better-bundle",
     "version": "${version}",
     "name": "Better Bundle",
-    "description": "Adds a side panel to the inventory for quick bundle access",
+    "description": "Adds a bundle tab to the vanilla recipe book",
     "authors": [],
     "contact": {},
     "license": "MIT",
     "environment": "client",
-    "entrypoints": {
-        "client": [
-            "betterbundle.BetterBundleMod"
-        ]
-    },
     "accessWidener": "better-bundle.accesswidener",
     "mixins": [
         {
@@ -21,8 +16,8 @@
         }
     ],
     "depends": {
-        "fabricloader": ">=0.18.4",
-        "minecraft": ">=26.1",
+        "fabricloader": ">=0.19.5",
+        "minecraft": "26.3.x",
         "java": ">=25"
     }
 }
