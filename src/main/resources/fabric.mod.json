@@ -2,11 +2,14 @@
     "schemaVersion": 1,
     "id": "better-bundle",
     "version": "${version}",
-    "name": "Better Bundle",
+    "name": "Bundle Tab",
     "description": "Adds a bundle tab to the vanilla recipe book",
-    "authors": [],
-    "contact": {},
-    "license": "MIT",
+    "authors": ["zeroowo24", "PluginsKers"],
+    "contact": {
+        "sources": "https://github.com/PluginsKers/bundle-tab",
+        "issues": "https://github.com/PluginsKers/bundle-tab/issues"
+    },
+    "license": "CC0-1.0",
     "environment": "client",
     "accessWidener": "better-bundle.accesswidener",
     "mixins": [
