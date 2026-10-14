@@ -64,10 +64,31 @@ public final class BundleClientGameTest implements FabricClientGameTest {
                 player.inventoryMenu.broadcastChanges();
             });
             sync(world);
-            context.runOnClient(client -> client.player.getRecipeBook().setOpen(RecipeBookType.CRAFTING, true));
+            context.runOnClient(client -> client.player.getRecipeBook().setOpen(RecipeBookType.CRAFTING, false));
             context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
-            clickTab(context, true);
+            context.runOnClient(client -> {
+                check(book(client).isVisible() && page(client) != null && page(client).selectedBundle() == null,
+                        "Opening the inventory automatically shows the bundle gallery");
+                var tabs = field(book(client), "tabButtons", List.class);
+                check(tabs.getFirst() instanceof BundleTabButton
+                                && field(book(client), "selectedTab", RecipeBookTabButton.class) == tabs.getFirst(),
+                        "The bundle tab is first and selected by default");
+                check(!field(book(client), "filterButton", CycleButton.class).visible, "The bundle gallery hides the recipe filter");
+            });
             context.takeScreenshot("recipebook-bundles");
+
+            clickTab(context, false);
+            context.getInput().resizeWindow(640, 480);
+            context.runOnClient(client -> check(book(client).isVisible() && page(client) == null,
+                    "Resizing preserves a manually selected recipe tab"));
+            context.runOnClient(client -> book(client).toggleVisibility());
+            context.getInput().resizeWindow(1280, 720);
+            context.runOnClient(client -> check(!book(client).isVisible(), "Resizing preserves a manually closed book"));
+            context.setScreen(() -> null);
+            context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
+            context.runOnClient(client -> check(book(client).isVisible() && page(client) != null
+                            && page(client).selectedBundle() == null && search(client).getValue().isEmpty(),
+                    "Reopening the inventory returns to the bundle gallery after closing recipes"));
 
             typeSearch(context, "石😀");
             context.getInput().pressKey(InputConstants.KEY_BACKSPACE);

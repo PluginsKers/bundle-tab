@@ -15,6 +15,7 @@ import net.minecraft.client.gui.screens.recipebook.RecipeBookPage;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookTabButton;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.crafting.display.RecipeDisplayId;
@@ -42,16 +43,22 @@ public abstract class RecipeBookComponentMixin implements BundleRecipeBookAccess
     @Shadow private RecipeDisplayId lastRecipe;
     @Shadow private RecipeCollection lastRecipeCollection;
     @Shadow public abstract boolean isVisible();
+    @Shadow protected abstract void setVisible(boolean visible);
     @Shadow private int getXOrigin() { throw new AssertionError(); }
     @Shadow private int getYOrigin() { throw new AssertionError(); }
     @Shadow private void onTabButtonPress(Button button) { throw new AssertionError(); }
     @Unique private BundleRecipeBookPage betterbundle$page;
 
+    @Inject(method = "init", at = @At("TAIL"))
+    private void openInitialInventoryPage(CallbackInfo ci) {
+        if (menu instanceof InventoryMenu && betterbundle$page == null) setVisible(true);
+    }
+
     @Inject(method = "initVisuals", at = @At(value = "FIELD",
             target = "Lnet/minecraft/client/gui/screens/recipebook/RecipeBookComponent;selectedTab:Lnet/minecraft/client/gui/screens/recipebook/RecipeBookTabButton;",
             opcode = Opcodes.GETFIELD, ordinal = 0))
     private void addBundleTab(CallbackInfo ci) {
-        tabButtons.add(new BundleTabButton(this::onTabButtonPress));
+        tabButtons.addFirst(new BundleTabButton(this::onTabButtonPress));
         if (betterbundle$page == null) betterbundle$page = new BundleRecipeBookPage(menu);
         betterbundle$page.init(getXOrigin(), getYOrigin(), searchBox);
     }
