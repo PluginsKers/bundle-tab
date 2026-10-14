@@ -171,9 +171,8 @@ public final class BundleRecipeBookPage {
                     : "better-bundle.no_bundles";
             graphics.textWithWordWrap(font, Component.translatable(key), x + 15, y + 55, 117, 0xFFFFFFFF);
         }
-        if (pageCount == 1 && selectedSlot < 0) return;
-        Component footer = pageCount > 1 ? Component.translatable("gui.recipebook.page", page + 1, pageCount)
-                : menu.getSlot(selectedSlot).getItem().getHoverName();
+        if (pageCount == 1) return;
+        Component footer = Component.translatable("gui.recipebook.page", page + 1, pageCount);
         String label = font.plainSubstrByWidth(footer.getString(), 125);
         graphics.centeredText(font, label, x + 73, y + 141, 0xFFFFFFFF);
     }
