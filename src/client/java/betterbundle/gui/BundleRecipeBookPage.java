@@ -143,7 +143,8 @@ public final class BundleRecipeBookPage {
     }
 
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || selectedBundle() != null || menu.getCarried().isEmpty()) return false;
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || selectedBundle() != null || menu.getCarried().isEmpty()
+                || !contains(event.x(), event.y()) || event.y() < y + 31) return false;
         refresh();
         for (ItemButton button : buttons) {
             if (button.visible && button.isMouseOver(event.x(), event.y())) {
@@ -151,7 +152,11 @@ public final class BundleRecipeBookPage {
                 return true;
             }
         }
-        return false;
+        if (pageCount > 1 && event.y() >= y + 131) return false;
+        entries().stream().map(Entry::bundle)
+                .filter(slot -> BundleContentsHelper.canFitItem(slot.getItem(), menu.getCarried()))
+                .findFirst().ifPresent(slot -> BundlePanelInteraction.clickSlot(slot, 0));
+        return true;
     }
 
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

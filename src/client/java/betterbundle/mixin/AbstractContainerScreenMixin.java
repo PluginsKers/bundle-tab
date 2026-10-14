@@ -40,7 +40,7 @@ public abstract class AbstractContainerScreenMixin {
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         betterbundle$dragStart = 0;
         betterbundle$lastSlot = -1;
-        // Let vanilla finish its drag state before handling a drop on a bundle icon.
+        // Let vanilla finish its drag state before handling a drop on the bundle page.
         if ((Object) this instanceof AbstractRecipeBookScreen<?> screen) {
             var page = ((BundleRecipeBookAccess) screen.recipeBookComponent).betterbundle$getPage();
             if (page != null && page.mouseReleased(event)) cir.setReturnValue(true);

@@ -258,6 +258,67 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             check(bundleCount(inventory.getItem(0), Items.STONE) == 16 && bundleCount(inventory.getItem(1), Items.STONE) == 64
                     && bundleCount(inventory.getItem(2), Items.DIRT) == 64, "Full bags keep the remainder and all physical bundles in place");
         });
+
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "原袋", List.of(new ItemStackTemplate(Items.DIRT, 64))));
+            player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "目标", List.of(new ItemStackTemplate(Items.STONE, 60))));
+            player.getInventory().setItem(9, new ItemStack(Items.STONE, 8));
+            player.getInventory().setItem(11, new ItemStack(Items.SHULKER_BOX));
+            player.inventoryMenu.broadcastChanges();
+        });
+        sync(world);
+        typeSearch(context, "");
+        moveToInventory(context, 9);
+        context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        moveToGalleryCell(context, 19);
+        context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.STONE, 4);
+        world.getServer().runOnServer(server -> {
+            var inventory = world.getConnection().getServerPlayer().getInventory();
+            check(bundleCount(inventory.getItem(0), Items.DIRT) == 64 && bundleCount(inventory.getItem(1), Items.STONE) == 64
+                    && bundleCount(inventory.getItem(2), Items.DIRT) == 64, "Blank gallery drop skips full bags and keeps overflow on the cursor");
+        });
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.STONE, 4);
+
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of()));
+            player.inventoryMenu.broadcastChanges();
+        });
+        sync(world);
+        typeSearch(context, "原袋");
+        moveToGalleryCell(context, 19);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.STONE, 4);
+        typeSearch(context, "");
+        sync(world);
+        checkCursor(context, world, Items.STONE, 4);
+        moveToGalleryCell(context, 19);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.AIR, 0);
+        context.runOnClient(client -> check(page(client).selectedBundle() == null, "Automatic deposit keeps the gallery open"));
+        world.getServer().runOnServer(server -> check(
+                bundleCount(world.getConnection().getServerPlayer().getInventory().getItem(2), Items.STONE) == 4,
+                "Automatic deposit respects the search filter and uses the next bag with space"));
+        context.takeScreenshot("recipebook-automatic-deposit");
+
+        moveToInventory(context, 11);
+        context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        moveToGalleryCell(context, 19);
+        context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.SHULKER_BOX, 1);
+        // A different slot avoids vanilla's double-click collection.
+        moveToInventory(context, 12);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.AIR, 0);
         context.setScreen(() -> null);
     }
 
