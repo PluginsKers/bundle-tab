@@ -1,8 +1,10 @@
 package betterbundle.mixin;
 
 import betterbundle.gui.BundlePanelInteraction;
+import betterbundle.gui.BundleRecipeBookAccess;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,10 +36,15 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    @Inject(method = "mouseReleased", at = @At("HEAD"))
+    @Inject(method = "mouseReleased", at = @At("RETURN"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         betterbundle$dragStart = 0;
         betterbundle$lastSlot = -1;
+        // Let vanilla finish its drag state before handling a drop on a bundle icon.
+        if ((Object) this instanceof AbstractRecipeBookScreen<?> screen) {
+            var page = ((BundleRecipeBookAccess) screen.recipeBookComponent).betterbundle$getPage();
+            if (page != null && page.mouseReleased(event)) cir.setReturnValue(true);
+        }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)

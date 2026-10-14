@@ -142,6 +142,18 @@ public final class BundleRecipeBookPage {
         return false;
     }
 
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || selectedBundle() != null || menu.getCarried().isEmpty()) return false;
+        refresh();
+        for (ItemButton button : buttons) {
+            if (button.visible && button.isMouseOver(event.x(), event.y())) {
+                BundlePanelInteraction.clickSlot(button.entry.bundle(), 0);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         refresh();
         for (ItemButton button : buttons) button.extractRenderState(graphics, mouseX, mouseY, partialTick);
@@ -149,9 +161,9 @@ public final class BundleRecipeBookPage {
         previous.extractRenderState(graphics, mouseX, mouseY, partialTick);
         next.extractRenderState(graphics, mouseX, mouseY, partialTick);
         var font = Minecraft.getInstance().font;
-        if (entryCount == 0) {
+        if (entryCount == 0 && (selectedSlot < 0 || !search.getValue().isEmpty())) {
             String key = !search.getValue().isEmpty() ? "better-bundle.no_results"
-                    : selectedSlot >= 0 ? "item.minecraft.bundle.empty" : "better-bundle.no_bundles";
+                    : "better-bundle.no_bundles";
             graphics.textWithWordWrap(font, Component.translatable(key), x + 15, y + 55, 117, 0xFFFFFFFF);
         }
         Component footer;

@@ -182,6 +182,7 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> check(!SDLKeyboard.SDL_TextInputActive(client.getWindow().handle()), "Closing the screen releases native text input"));
 
             checkFullInventory(context, world);
+            checkGalleryDrop(context, world);
             if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("mousetweaks")) {
                 checkVanillaInventoryDrag(context, world);
             }
@@ -206,6 +207,66 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         world.getServer().runOnServer(server -> check(bundleCount(world.getConnection().getServerPlayer().getInventory().getItem(0), Items.STONE) == 8,
                 "A full inventory returns the extracted stack to the original bundle"));
         context.setScreen(() -> null);
+    }
+
+    private static void checkGalleryDrop(ClientGameTestContext context, TestSingleplayerContext world) {
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            for (int i = 0; i < 36; i++) player.getInventory().setItem(i, ItemStack.EMPTY);
+            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "原袋", List.of()));
+            player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "目标", List.of()));
+            player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of(new ItemStackTemplate(Items.DIRT, 64))));
+            player.getInventory().setItem(9, new ItemStack(Items.STONE, 48));
+            player.getInventory().setItem(10, new ItemStack(Items.STONE, 32));
+            player.inventoryMenu.broadcastChanges();
+        });
+        sync(world);
+        context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
+        clickTab(context, true);
+        typeSearch(context, "目标");
+        moveToInventory(context, 9);
+        context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        moveToGalleryCell(context, 0);
+        context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.AIR, 0);
+        context.runOnClient(client -> check(page(client).selectedBundle() == null, "Dropping keeps the bundle gallery open"));
+        world.getServer().runOnServer(server -> {
+            var inventory = world.getConnection().getServerPlayer().getInventory();
+            check(bundleCount(inventory.getItem(1), Items.STONE) == 48 && BundleContentsHelper.contents(inventory.getItem(0)).isEmpty(),
+                    "Filtered gallery drop uses the displayed bundle");
+        });
+
+        moveToInventory(context, 10);
+        context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        moveToGalleryCell(context, 0);
+        context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.STONE, 16);
+        typeSearch(context, "满袋");
+        moveToGalleryCell(context, 0);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.STONE, 16);
+        typeSearch(context, "原袋");
+        moveToGalleryCell(context, 0);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        sync(world);
+        checkCursor(context, world, Items.AIR, 0);
+        world.getServer().runOnServer(server -> {
+            var inventory = world.getConnection().getServerPlayer().getInventory();
+            check(bundleCount(inventory.getItem(0), Items.STONE) == 16 && bundleCount(inventory.getItem(1), Items.STONE) == 64
+                    && bundleCount(inventory.getItem(2), Items.DIRT) == 64, "Full bags keep the remainder and all physical bundles in place");
+        });
+        context.setScreen(() -> null);
+    }
+
+    private static void moveToGalleryCell(ClientGameTestContext context, int index) {
+        var position = context.computeOnClient(client -> new double[]{
+                (search(client).getX() - 25 + 20 + index % 5 * 25) * client.getWindow().getGuiScale(),
+                (search(client).getY() - 13 + 40 + index / 5 * 25) * client.getWindow().getGuiScale()});
+        context.getInput().setCursorPos(position[0], position[1]);
+        context.waitTick();
     }
 
     private static void checkVanillaInventoryDrag(ClientGameTestContext context, TestSingleplayerContext world) {
