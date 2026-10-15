@@ -166,10 +166,8 @@ public final class BundleRecipeBookPage {
         previous.extractRenderState(graphics, mouseX, mouseY, partialTick);
         next.extractRenderState(graphics, mouseX, mouseY, partialTick);
         var font = Minecraft.getInstance().font;
-        if (entryCount == 0 && (selectedSlot < 0 || !search.getValue().isEmpty())) {
-            String key = !search.getValue().isEmpty() ? "better-bundle.no_results"
-                    : "better-bundle.no_bundles";
-            graphics.textWithWordWrap(font, Component.translatable(key), x + 15, y + 55, 117, 0xFFFFFFFF);
+        if (entryCount == 0 && !search.getValue().isEmpty()) {
+            graphics.textWithWordWrap(font, Component.translatable("better-bundle.no_results"), x + 15, y + 55, 117, 0xFFFFFFFF);
         }
         if (pageCount == 1) return;
         Component footer = Component.translatable("gui.recipebook.page", page + 1, pageCount);
