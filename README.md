@@ -4,6 +4,8 @@
 
 Browse your bundles in the vanilla recipe book. The bundle tab appears first and opens with your inventory. Also works at crafting tables, with no server mod required.
 
+![The bundle tab beside the player inventory, showing four available bundles](assets/screenshot.png)
+
 Search by item name, ID, or Pinyin, and click a bundle to browse its contents.
 
 | Action | Result |
