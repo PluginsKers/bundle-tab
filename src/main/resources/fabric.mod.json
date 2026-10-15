@@ -10,6 +10,7 @@
         "issues": "https://github.com/PluginsKers/bundle-tab/issues"
     },
     "license": "CC0-1.0",
+    "icon": "assets/better-bundle/icon.png",
     "environment": "client",
     "accessWidener": "better-bundle.accesswidener",
     "mixins": [

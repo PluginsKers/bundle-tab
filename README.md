@@ -1,3 +1,5 @@
+![Bundle Tab](artwork/banner.png)
+
 # Bundle Tab
 
 Browse your bundles in the vanilla recipe book. The bundle tab appears first and opens with your inventory. Also works at crafting tables, with no server mod required.
