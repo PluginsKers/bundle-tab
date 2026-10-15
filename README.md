@@ -19,18 +19,18 @@ Items that do not fit stay where they are. Mouse Tweaks gestures inside the bund
 
 ## Installation
 
-Requires Minecraft 26.3.x, Fabric Loader 0.19.5 or newer, and Java 25.
-Place the mod jar in your client's `mods` folder. Remove older Better Bundle or Bundle Tab jars first; the mod ID remains `better-bundle`.
+Supports Minecraft 1.21.11, 26.1, 26.1.1, 26.1.2, 26.2, and 26.3. Requires Fabric Loader 0.19.5 or newer.
+Download the jar matching your Minecraft version from [Releases](https://github.com/PluginsKers/bundle-tab/releases) and place it in your client's `mods` folder. Use Java 21 for 1.21.11 and Java 25 for 26.x. Remove older Better Bundle or Bundle Tab jars first; the mod ID remains `better-bundle`.
 
 ## Building
 
 ```sh
 ./gradlew build
-./gradlew runClientGameTest
+./gradlew :26.3:runClientGameTest
 ```
 
-Use `gradlew.bat` on Windows. Builds require JDK 25; game tests also require a display. Jars are written to `build/libs`.
-Game tests include Mouse Tweaks by default; use `-PmouseTweaksTest=false` to run without it.
+Use `gradlew.bat` on Windows. Run Gradle with JDK 25; the Java 21 toolchain is downloaded when needed. Game tests require a display. `build` builds all versions; `:1.21.11:build` builds one. Jars are written to `versions/<minecraft>/build/libs`.
+Game tests include the matching Mouse Tweaks release.
 
 ## Credits and license
 

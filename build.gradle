@@ -1,10 +1,16 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version "${loom_version}"
-    id 'maven-publish'
+    id 'net.fabricmc.fabric-loom' version '1.16.3' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.16.3' apply false
 }
 
-version = project.mod_version
+def remapped = stonecutter.eval(stonecutter.current.version, '<26.1')
+apply plugin: remapped ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+
+def minecraftVersion = stonecutter.current.version
+def javaVersion = remapped ? 21 : 25
+version = "${mod_version}+mc${minecraftVersion}"
 group = project.maven_group
+base { archivesName = 'bundle-tab' }
 
 repositories {
     mavenCentral()
@@ -16,16 +22,50 @@ repositories {
 
 configurations {
     embed
-    compileOnly.extendsFrom embed
-    runtimeOnly.extendsFrom embed
+    compileOnly.extendsFrom(embed)
+    runtimeOnly.extendsFrom(embed)
+}
+
+stonecutter.replacements {
+    string(remapped) { replace('accessWidener v2 official', 'accessWidener v2 named') }
+    string(remapped) {
+        replace('GuiGraphicsExtractor', 'GuiGraphics')
+        replace('extractRenderState(', 'render(')
+        replace('"extractRenderState"', '"render"')
+        replace('extractWidgetRenderState', 'renderWidget')
+        replace('extractTooltip', 'renderTooltip')
+        replace('extractGhostRecipe', 'renderGhostRecipe')
+        replace('graphics.item(', 'graphics.renderItem(')
+        replace('graphics.itemDecorations(', 'graphics.renderItemDecorations(')
+        replace('graphics.textWithWordWrap(', 'graphics.drawWordWrap(')
+        replace('graphics.centeredText(', 'graphics.drawCenteredString(')
+    }
+    string(stonecutter.eval(minecraftVersion, '<26.2')) {
+        replace('client.gui.screen()', 'client.screen')
+        replace('client.gui.overlay()', 'client.getOverlay()')
+    }
+    string(stonecutter.eval(minecraftVersion, '<26.3')) {
+        replace('.itemCopies()', '.itemCopyStream()')
+        replace('InputConstants.isKeyDown(InputConstants.KEY_SPACE)', 'InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_SPACE)')
+    }
+    string(stonecutter.eval(minecraftVersion, '<26.2')) {
+        replace('Items.DYED_BUNDLE.red()', 'Items.RED_BUNDLE')
+        replace('Items.DYED_BUNDLE.blue()', 'Items.BLUE_BUNDLE')
+        replace('Items.DYED_BUNDLE.white()', 'Items.WHITE_BUNDLE')
+    }
+    string(remapped) {
+        replace('client.resizeGui()', 'client.resizeDisplay()')
+        replace('ContainerInput', 'ClickType')
+        replace('handleContainerInput', 'handleInventoryMouseClick')
+        replace('BundleItem.getSelectedItemIndex(', 'BundleItem.getSelectedItem(')
+    }
 }
 
 loom {
+    accessWidenerPath = stonecutter.process(rootProject.file('src/main/resources/better-bundle.accesswidener'), 'build/better-bundle.accesswidener')
     splitEnvironmentSourceSets()
-    accessWidenerPath = file("src/main/resources/better-bundle.accesswidener")
-
     mods {
-        "better-bundle" {
+        'better-bundle' {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
@@ -35,65 +75,36 @@ loom {
 fabricApi {
     configureTests {
         createSourceSet = true
-        modId = "better-bundle-test"
+        modId = 'better-bundle-test'
         enableGameTests = false
         enableClientGameTests = true
     }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-
     embed 'com.belerweb:pinyin4j:2.5.1'
-    if (providers.gradleProperty('mouseTweaksTest').getOrElse('true').toBoolean()) {
-        gametestRuntimeOnly 'maven.modrinth:mouse-tweaks:26.3-2.31-fabric'
-    }
+    add(remapped ? 'modGametestRuntimeOnly' : 'gametestRuntimeOnly', "maven.modrinth:mouse-tweaks:${mouse_tweaks_version}")
+    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    if (remapped) mappings loom.officialMojangMappings()
+    add(remapped ? 'modImplementation' : 'implementation', "net.fabricmc:fabric-loader:${loader_version}")
+    add(remapped ? 'modImplementation' : 'implementation', "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
 }
 
-processResources {
-    def version = project.version
-    inputs.property "version", version
-
-    filesMatching("fabric.mod.json") {
-        expand "version": version
+tasks.withType(ProcessResources).configureEach {
+    inputs.properties(version: project.version, minecraft: minecraftVersion, java: javaVersion)
+    filesMatching('fabric.mod.json') {
+        expand(version: project.version, minecraft: minecraftVersion, java: javaVersion)
     }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    it.options.release = 25
+    filesMatching('*.mixins.json') { expand(java: javaVersion) }
 }
 
 java {
     withSourcesJar()
-
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
 }
 
+tasks.withType(JavaCompile).configureEach { options.release = javaVersion }
 jar {
-    def projectName = project.name
-    inputs.property "projectName", projectName
-
-    from("LICENSE") {
-        rename { "${it}_$projectName"}
-    }
-
-    // Embed pinyin4j classes directly (not jar-in-jar)
-    from {
-        configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
-
-publishing {
-    publications {
-        create("mavenJava", MavenPublication) {
-            from components.java
-        }
-    }
-
-    repositories {
-    }
+    from(rootProject.file('LICENSE')) { rename { 'LICENSE_bundle-tab' } }
+    from { configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } }
 }

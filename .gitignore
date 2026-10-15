@@ -27,3 +27,7 @@ crash-reports/
 *.zip
 *.txt
 !LICENSE
+
+# Stonecutter
+.stonecutter/
+versions/*/src/
