@@ -27,9 +27,11 @@ import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+//? if >=26.1
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
+//? if >=26.3
 import org.lwjgl.sdl.SDLKeyboard;
 
 import java.util.List;
@@ -44,30 +46,41 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> client.gui.overlay() == null);
     }
 
+    //? if >=26.3 {
+    private static final int SHIFT_LEFT = org.lwjgl.sdl.SDLKeycode.SDL_KMOD_LSHIFT;
+    private static final int SHIFT_RIGHT = org.lwjgl.sdl.SDLKeycode.SDL_KMOD_RSHIFT;
+    private static final int CONTROL = org.lwjgl.sdl.SDLKeycode.SDL_KMOD_LCTRL;
+    //?} else {
+    /*private static final int SHIFT_LEFT = org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT;
+    private static final int SHIFT_RIGHT = org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT;
+    private static final int CONTROL = org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL;
+    *///?}
+
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.runOnClient(client -> client.options.menuBackgroundBlurriness().set(0));
         context.getInput().resizeWindow(1280, 720);
         context.runOnClient(client -> { client.options.guiScale().set(2); client.resizeGui(); });
         setLanguage(context, "en_us");
         try (var world = context.worldBuilder().create()) {
             world.getServer().runOnServer(server -> {
-                var player = world.getConnection().getServerPlayer();
+                var player = server.getPlayerList().getPlayers().getFirst();
                 player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "建筑材料", List.of(
-                        new ItemStackTemplate(Items.STONE, 8), new ItemStackTemplate(Items.DIRT, 4))));
+                        new ItemStack(Items.STONE, 8), new ItemStack(Items.DIRT, 4))));
                 player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "工具袋", List.of()));
-                player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of(new ItemStackTemplate(Items.COBBLESTONE, 64))));
+                player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of(new ItemStack(Items.COBBLESTONE, 64))));
                 player.getInventory().setItem(3, bundle(Items.BUNDLE, "杂物", List.of(
                         Items.STONE, Items.DIRT, Items.COBBLESTONE, Items.ANDESITE, Items.DIORITE, Items.GRANITE,
                         Items.DEEPSLATE, Items.TUFF, Items.GRAVEL, Items.SAND, Items.RED_SAND, Items.MOSS_BLOCK,
                         Items.COARSE_DIRT, Items.ROOTED_DIRT, Items.CLAY, Items.BRICKS, Items.OAK_PLANKS,
                         Items.SPRUCE_PLANKS, Items.BIRCH_PLANKS, Items.JUNGLE_PLANKS, Items.ACACIA_PLANKS,
                         Items.DARK_OAK_PLANKS, Items.MANGROVE_PLANKS, Items.CHERRY_PLANKS, Items.BAMBOO_PLANKS,
-                        Items.PALE_OAK_PLANKS, Items.CALCITE, Items.OBSIDIAN).stream().map(item -> new ItemStackTemplate(item, 1)).toList()));
+                        Items.PALE_OAK_PLANKS, Items.CALCITE, Items.OBSIDIAN).stream().map(item -> new ItemStack(item, 1)).toList()));
                 player.getInventory().setItem(9, new ItemStack(Items.STONE, 60));
                 player.getInventory().setItem(10, new ItemStack(Items.DIRT, 16));
                 player.inventoryMenu.broadcastChanges();
             });
-            sync(world);
+            sync(context, world);
             context.runOnClient(client -> client.player.getRecipeBook().setOpen(RecipeBookType.CRAFTING, false));
             context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
             context.runOnClient(client -> {
@@ -105,25 +118,25 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             openBundle(context, "jianzhu");
             context.takeScreenshot("recipebook-bundle-contents");
             clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, 0);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.STONE, 8);
             clickCell(context, 19, InputConstants.MOUSE_BUTTON_LEFT, 0);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.AIR, 0);
             world.getServer().runOnServer(server -> {
-                var inventory = world.getConnection().getServerPlayer().getInventory();
+                var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
                 check(bundleCount(inventory.getItem(0), Items.STONE) == 8, "Insert into the selected red bundle");
                 check(BundleContentsHelper.contents(inventory.getItem(1)).isEmpty(), "Do not insert into a different bundle");
             });
 
             openBundle(context, "jianzhu");
-            clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, org.lwjgl.sdl.SDLKeycode.SDL_KMOD_LSHIFT);
-            sync(world);
-            clickCell(context, 0, InputConstants.MOUSE_BUTTON_RIGHT, org.lwjgl.sdl.SDLKeycode.SDL_KMOD_RSHIFT);
-            sync(world);
+            clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_LEFT);
+            sync(context, world);
+            clickCell(context, 0, InputConstants.MOUSE_BUTTON_RIGHT, SHIFT_RIGHT);
+            sync(context, world);
             checkCursor(context, world, Items.AIR, 0);
             world.getServer().runOnServer(server -> {
-                var inventory = world.getConnection().getServerPlayer().getInventory();
+                var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
                 check(inventory.getItem(9).getCount() == 64, "Shift-click merges into an existing stack");
                 check(inventory.getItem(11).is(Items.STONE) && inventory.getItem(11).getCount() == 4, "Shift-click moves the remainder to an empty slot");
                 check(inventory.getItem(10).getCount() == 20, "Both Shift modifiers transfer the complete selected stack");
@@ -132,11 +145,11 @@ public final class BundleClientGameTest implements FabricClientGameTest {
 
             openBundle(context, "gongju");
             spaceClick(context, 10);
-            sync(world);
+            sync(context, world);
             spaceClick(context, 9);
-            sync(world);
+            sync(context, world);
             world.getServer().runOnServer(server -> {
-                var inventory = world.getConnection().getServerPlayer().getInventory();
+                var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
                 check(bundleCount(inventory.getItem(1), Items.DIRT) == 20 && bundleCount(inventory.getItem(1), Items.STONE) == 44,
                         "Space-click targets the selected bundle and respects its remaining capacity");
                 check(inventory.getItem(9).getCount() == 20, "Partial insertion returns excess items to the original slot");
@@ -144,37 +157,37 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             openBundle(context, "满袋");
             context.runOnClient(client -> BundlePanelInteraction.clickSlot(client.player.inventoryMenu.getSlot(9), 0));
             clickCell(context, 19, InputConstants.MOUSE_BUTTON_LEFT, 0);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.STONE, 20);
             context.runOnClient(client -> BundlePanelInteraction.clickSlot(client.player.inventoryMenu.getSlot(9), 0));
-            sync(world);
+            sync(context, world);
 
             openBundle(context, "杂物");
             clickBook(context, 99, 144, InputConstants.MOUSE_BUTTON_LEFT, 0);
             context.takeScreenshot("recipebook-bundle-page-two");
             clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, 0);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.ACACIA_PLANKS, 1);
             clickCell(context, 19, InputConstants.MOUSE_BUTTON_LEFT, 0);
-            sync(world);
+            sync(context, world);
 
             openBundle(context, "gongju");
             world.getServer().runOnServer(server -> {
-                var player = world.getConnection().getServerPlayer();
+                var player = server.getPlayerList().getPlayers().getFirst();
                 player.getInventory().setItem(35, player.getInventory().getItem(1));
                 player.getInventory().setItem(1, ItemStack.EMPTY);
                 player.inventoryMenu.broadcastChanges();
             });
-            sync(world);
+            sync(context, world);
             context.runOnClient(client -> check(page(client).selectedBundle() == null, "Server-side movement invalidates the selected slot"));
 
             world.getServer().runOnServer(server -> {
-                var player = world.getConnection().getServerPlayer();
+                var player = server.getPlayerList().getPlayers().getFirst();
                 player.getInventory().setItem(30, new ItemStack(Items.OAK_PLANKS, 8));
                 player.inventoryMenu.broadcastChanges();
             });
             world.getServer().runCommand("recipe give Player0 *");
-            sync(world);
+            sync(context, world);
             clickTab(context, false);
             context.runOnClient(client -> check(page(client) == null
                     && field(book(client), "filterButton", CycleButton.class).visible, "Vanilla recipe tab and filter are restored"));
@@ -183,13 +196,13 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("recipebook-vanilla-crafting");
             clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, 0);
             context.waitFor(client -> client.player.inventoryMenu.getSlot(0).getItem().is(Items.STICK));
-            sync(world);
+            sync(context, world);
             clickTab(context, true);
             context.takeScreenshot("recipebook-with-vanilla-tabs");
 
             context.setScreen(() -> null);
             world.getServer().runOnServer(server -> {
-                var player = world.getConnection().getServerPlayer();
+                var player = server.getPlayerList().getPlayers().getFirst();
                 player.openMenu(new SimpleMenuProvider((id, inventory, owner) -> new CraftingMenu(id, inventory),
                         Component.translatable("container.crafting")));
             });
@@ -203,8 +216,10 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("recipebook-narrow-window");
             context.getInput().resizeWindow(1280, 720);
             typeSearch(context, "石");
+            //? if >=26.3
             context.runOnClient(client -> check(SDLKeyboard.SDL_TextInputActive(client.getWindow().handle()), "Native search enables SDL text input"));
             context.setScreen(() -> null);
+            //? if >=26.3
             context.runOnClient(client -> check(!SDLKeyboard.SDL_TextInputActive(client.getWindow().handle()), "Closing the screen releases native text input"));
 
             checkFullInventory(context, world);
@@ -217,36 +232,36 @@ public final class BundleClientGameTest implements FabricClientGameTest {
 
     private static void checkFullInventory(ClientGameTestContext context, TestSingleplayerContext world) {
         world.getServer().runOnServer(server -> {
-            var player = world.getConnection().getServerPlayer();
+            var player = server.getPlayerList().getPlayers().getFirst();
             player.closeContainer();
             for (int i = 0; i < 36; i++) player.getInventory().setItem(i, new ItemStack(Items.COBBLESTONE, 64));
-            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "建筑材料", List.of(new ItemStackTemplate(Items.STONE, 8))));
+            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "建筑材料", List.of(new ItemStack(Items.STONE, 8))));
             player.inventoryMenu.broadcastChanges();
         });
-        sync(world);
+        sync(context, world);
         context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
         clickTab(context, true);
         openBundle(context, "jianzhu");
-        clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, org.lwjgl.sdl.SDLKeycode.SDL_KMOD_LSHIFT);
-        sync(world);
+        clickCell(context, 0, InputConstants.MOUSE_BUTTON_LEFT, SHIFT_LEFT);
+        sync(context, world);
         checkCursor(context, world, Items.AIR, 0);
-        world.getServer().runOnServer(server -> check(bundleCount(world.getConnection().getServerPlayer().getInventory().getItem(0), Items.STONE) == 8,
+        world.getServer().runOnServer(server -> check(bundleCount(server.getPlayerList().getPlayers().getFirst().getInventory().getItem(0), Items.STONE) == 8,
                 "A full inventory returns the extracted stack to the original bundle"));
         context.setScreen(() -> null);
     }
 
     private static void checkGalleryDrop(ClientGameTestContext context, TestSingleplayerContext world) {
         world.getServer().runOnServer(server -> {
-            var player = world.getConnection().getServerPlayer();
+            var player = server.getPlayerList().getPlayers().getFirst();
             for (int i = 0; i < 36; i++) player.getInventory().setItem(i, ItemStack.EMPTY);
             player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "原袋", List.of()));
             player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "目标", List.of()));
-            player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of(new ItemStackTemplate(Items.DIRT, 64))));
+            player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of(new ItemStack(Items.DIRT, 64))));
             player.getInventory().setItem(9, new ItemStack(Items.STONE, 48));
             player.getInventory().setItem(10, new ItemStack(Items.STONE, 32));
             player.inventoryMenu.broadcastChanges();
         });
-        sync(world);
+        sync(context, world);
         context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
         clickTab(context, true);
         typeSearch(context, "目标");
@@ -254,11 +269,11 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
         moveToGalleryCell(context, 0);
         context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.AIR, 0);
         context.runOnClient(client -> check(page(client).selectedBundle() == null, "Dropping keeps the bundle gallery open"));
         world.getServer().runOnServer(server -> {
-            var inventory = world.getConnection().getServerPlayer().getInventory();
+            var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
             check(bundleCount(inventory.getItem(1), Items.STONE) == 48 && BundleContentsHelper.contents(inventory.getItem(0)).isEmpty(),
                     "Filtered gallery drop uses the displayed bundle");
         });
@@ -267,70 +282,70 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
         moveToGalleryCell(context, 0);
         context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 16);
         typeSearch(context, "满袋");
         moveToGalleryCell(context, 0);
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 16);
         typeSearch(context, "原袋");
         moveToGalleryCell(context, 0);
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.AIR, 0);
         world.getServer().runOnServer(server -> {
-            var inventory = world.getConnection().getServerPlayer().getInventory();
+            var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
             check(bundleCount(inventory.getItem(0), Items.STONE) == 16 && bundleCount(inventory.getItem(1), Items.STONE) == 64
                     && bundleCount(inventory.getItem(2), Items.DIRT) == 64, "Full bags keep the remainder and all physical bundles in place");
         });
 
         world.getServer().runOnServer(server -> {
-            var player = world.getConnection().getServerPlayer();
-            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "原袋", List.of(new ItemStackTemplate(Items.DIRT, 64))));
-            player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "目标", List.of(new ItemStackTemplate(Items.STONE, 60))));
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "原袋", List.of(new ItemStack(Items.DIRT, 64))));
+            player.getInventory().setItem(1, bundle(Items.DYED_BUNDLE.blue(), "目标", List.of(new ItemStack(Items.STONE, 60))));
             player.getInventory().setItem(9, new ItemStack(Items.STONE, 8));
             player.getInventory().setItem(11, new ItemStack(Items.SHULKER_BOX));
             player.inventoryMenu.broadcastChanges();
         });
-        sync(world);
+        sync(context, world);
         typeSearch(context, "");
         moveToInventory(context, 9);
         context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
         moveToGalleryCell(context, 19);
         context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 4);
         world.getServer().runOnServer(server -> {
-            var inventory = world.getConnection().getServerPlayer().getInventory();
+            var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
             check(bundleCount(inventory.getItem(0), Items.DIRT) == 64 && bundleCount(inventory.getItem(1), Items.STONE) == 64
                     && bundleCount(inventory.getItem(2), Items.DIRT) == 64, "Blank gallery drop skips full bags and keeps overflow on the cursor");
         });
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 4);
 
         world.getServer().runOnServer(server -> {
-            var player = world.getConnection().getServerPlayer();
+            var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().setItem(2, bundle(Items.DYED_BUNDLE.white(), "满袋", List.of()));
             player.inventoryMenu.broadcastChanges();
         });
-        sync(world);
+        sync(context, world);
         typeSearch(context, "原袋");
         moveToGalleryCell(context, 19);
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 4);
         typeSearch(context, "");
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.STONE, 4);
         moveToGalleryCell(context, 19);
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.AIR, 0);
         context.runOnClient(client -> check(page(client).selectedBundle() == null, "Automatic deposit keeps the gallery open"));
         world.getServer().runOnServer(server -> check(
-                bundleCount(world.getConnection().getServerPlayer().getInventory().getItem(2), Items.STONE) == 4,
+                bundleCount(server.getPlayerList().getPlayers().getFirst().getInventory().getItem(2), Items.STONE) == 4,
                 "Automatic deposit respects the search filter and uses the next bag with space"));
         context.takeScreenshot("recipebook-automatic-deposit");
 
@@ -338,12 +353,12 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
         moveToGalleryCell(context, 19);
         context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.SHULKER_BOX, 1);
         // A different slot avoids vanilla's double-click collection.
         moveToInventory(context, 12);
         context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-        sync(world);
+        sync(context, world);
         checkCursor(context, world, Items.AIR, 0);
         context.setScreen(() -> null);
     }
@@ -358,15 +373,15 @@ public final class BundleClientGameTest implements FabricClientGameTest {
 
     private static void checkVanillaInventoryDrag(ClientGameTestContext context, TestSingleplayerContext world) {
         world.getServer().runOnServer(server -> {
-            var player = world.getConnection().getServerPlayer();
+            var player = server.getPlayerList().getPlayers().getFirst();
             for (int i = 0; i < 36; i++) player.getInventory().setItem(i, ItemStack.EMPTY);
             player.getInventory().setItem(0, bundle(Items.DYED_BUNDLE.red(), "拖拽", List.of(
-                    new ItemStackTemplate(Items.STONE, 8), new ItemStackTemplate(Items.DIRT, 4))));
+                    new ItemStack(Items.STONE, 8), new ItemStack(Items.DIRT, 4))));
             player.getInventory().setItem(9, new ItemStack(Items.STONE, 16));
             player.getInventory().setItem(10, new ItemStack(Items.STONE, 4));
             player.inventoryMenu.broadcastChanges();
         });
-        sync(world);
+        sync(context, world);
         context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
         clickTab(context, true);
         openBundle(context, "拖拽");
@@ -380,23 +395,23 @@ public final class BundleClientGameTest implements FabricClientGameTest {
             moveToInventory(context, 10);
             moveToInventory(context, 0);
             context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.STONE, 20);
             world.getServer().runOnServer(server -> check(
-                    world.getConnection().getServerPlayer().getInventory().getItem(0).is(Items.DYED_BUNDLE.red()),
+                    server.getPlayerList().getPlayers().getFirst().getInventory().getItem(0).is(Items.DYED_BUNDLE.red()),
                     "Inventory-only collection must not pick up the physical bundle"));
             moveToInventory(context, 11);
             context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
-            sync(world);
+            sync(context, world);
             checkCursor(context, world, Items.AIR, 0);
             world.getServer().runOnServer(server -> {
-                var player = world.getConnection().getServerPlayer();
+                var player = server.getPlayerList().getPlayers().getFirst();
                 player.getInventory().setItem(11, ItemStack.EMPTY);
                 player.getInventory().setItem(9, new ItemStack(Items.STONE, 16));
                 player.getInventory().setItem(10, new ItemStack(Items.STONE, 4));
                 player.inventoryMenu.broadcastChanges();
             });
-            sync(world);
+            sync(context, world);
         }
         context.setScreen(() -> null);
     }
@@ -413,10 +428,14 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.waitTick();
     }
 
-    private static ItemStack bundle(Item item, String name, List<ItemStackTemplate> contents) {
+    private static ItemStack bundle(Item item, String name, List<ItemStack> contents) {
         var stack = new ItemStack(item);
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
-        stack.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(contents));
+        //? if >=26.1 {
+        stack.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(contents.stream().map(ItemStackTemplate::fromNonEmptyStack).toList()));
+        //?} else {
+        /*stack.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(contents));
+        *///?}
         return stack;
     }
 
@@ -424,10 +443,6 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         return BundleContentsHelper.contents(bundle).itemCopies().filter(stack -> stack.is(item)).mapToInt(ItemStack::getCount).sum();
     }
 
-    private static void sync(TestSingleplayerContext world) {
-        world.getConnection().waitForServerboundPackets();
-        world.getConnection().waitForClientboundPackets();
-    }
 
     private static RecipeBookComponent<?> book(Minecraft client) {
         return ((AbstractRecipeBookScreen<?>) client.gui.screen()).recipeBookComponent;
@@ -467,9 +482,9 @@ public final class BundleClientGameTest implements FabricClientGameTest {
 
     private static void typeSearch(ClientGameTestContext context, String text) {
         clickBook(context, 35, 18, InputConstants.MOUSE_BUTTON_LEFT, 0);
-        // Fabric's simulated key events currently omit SDL modifier flags.
+        // Supply modifier flags explicitly for the native search shortcut.
         context.runOnClient(client -> client.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_A, 'a',
-                org.lwjgl.sdl.SDLKeycode.SDL_KMOD_LCTRL)));
+                CONTROL)));
         context.getInput().pressKey(InputConstants.KEY_BACKSPACE);
         context.getInput().typeChars(text);
         context.runOnClient(client -> check(search(client).getValue().equals(text),
@@ -514,9 +529,18 @@ public final class BundleClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> check(client.player.containerMenu.getCarried().getCount() == count,
                 "Client cursor: expected " + count + " " + item + ", got " + client.player.containerMenu.getCarried()));
         world.getServer().runOnServer(server -> {
-            var carried = world.getConnection().getServerPlayer().containerMenu.getCarried();
+            var carried = server.getPlayerList().getPlayers().getFirst().containerMenu.getCarried();
             check(carried.getCount() == count && (count == 0 || carried.is(item)), "Server cursor matches the client");
         });
+    }
+
+    private static void sync(ClientGameTestContext context, TestSingleplayerContext world) {
+        //? if >=26.2 {
+        world.getConnection().waitForServerboundPackets();
+        world.getConnection().waitForClientboundPackets();
+        //?} else {
+        /*context.waitTicks(2);
+        *///?}
     }
 
     private static void check(boolean condition, String message) {

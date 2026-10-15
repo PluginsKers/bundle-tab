@@ -3,6 +3,8 @@ package betterbundle.mixin;
 import betterbundle.gui.BundlePanelInteraction;
 import betterbundle.gui.BundleRecipeBookAccess;
 import com.mojang.blaze3d.platform.InputConstants;
+//? if <26.3
+/*import net.minecraft.client.Minecraft;*/
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen;
 import net.minecraft.client.input.MouseButtonEvent;

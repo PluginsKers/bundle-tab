@@ -32,7 +32,12 @@ public final class BundleContentsHelper {
     }
 
     public static boolean canFitItem(ItemStack bundle, ItemStack item) {
-        return isBundle(bundle) && !item.isEmpty() && contents(bundle).asMutable().tryInsert(item.copy()) > 0;
+        if (!isBundle(bundle) || item.isEmpty()) return false;
+        //? if >=26.3 {
+        return contents(bundle).asMutable().tryInsert(item.copy()) > 0;
+        //?} else {
+        /*return new BundleContents.Mutable(contents(bundle)).tryInsert(item.copy()) > 0;
+        *///?}
     }
 
     public static boolean matchesSearch(ItemStack stack, String query) {
