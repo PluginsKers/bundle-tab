@@ -58,6 +58,7 @@ public final class BundleClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.runOnClient(client -> client.options.menuBackgroundBlurriness().set(0));
         context.getInput().resizeWindow(1280, 720);
         context.runOnClient(client -> { client.options.guiScale().set(2); client.resizeGui(); });
         setLanguage(context, "en_us");
