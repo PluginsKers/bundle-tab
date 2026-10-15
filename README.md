@@ -1,58 +1,35 @@
 # Bundle Tab
 
-打开背包时自动显示收纳袋列表，点击对应收纳袋查看内容。收纳袋页签位于原版配方书第一位，工作台中也可使用。
+Browse your bundles in the vanilla recipe book. The bundle tab appears first and opens with your inventory. Also works at crafting tables, with no server mod required.
 
-支持物品名称、拼音和物品 ID 搜索，以及袋内物品分页。使用原版物品栏操作与服务器同步，无需安装服务端模组。
+Search by item name, ID, or Pinyin, and click a bundle to browse its contents.
 
-## 环境
-
-- Minecraft 26.3.x
-- Fabric Loader 0.19.5 或更新版本
-- Java 25 或更新版本（构建需要 JDK 25）
-
-## 操作
-
-| 操作 | 行为 |
+| Action | Result |
 | --- | --- |
-| 左键点击收纳袋图标 | 查看袋内物品 |
-| 拖动物品到第一级列表空白处并松开左键 | 存入当前搜索结果中第一个有空间的收纳袋，容量不足时余量留在手上 |
-| 从背包拖动物品到第一级收纳袋图标并松开左键 | 存入对应收纳袋，容量不足时余量留在手上 |
-| 空手左键点击袋内物品 | 取出选中的整组物品 |
-| 手持物品左键点击袋内区域 | 存入物品，超出容量的部分留在手上 |
-| Shift 点击袋内物品 | 转移到背包，无法容纳的部分留在袋内 |
-| 空格加左键点击背包物品 | 存入选中的收纳袋；未选择时使用第一个可容纳的收纳袋 |
+| Drop held items onto the bundle list | Store in the first matching bundle with space |
+| Drop held items onto a bundle | Store in that bundle |
+| Click an item inside a bundle | Take out the selected stack |
+| Click inside a bundle while holding items | Store the held items |
+| Shift-click an item inside a bundle | Move it to your inventory |
+| Space + left-click an inventory item | Store it in the selected bundle, or the first available bundle |
 
-当前版本未接入 Mouse Tweaks 的袋内拖拽和滚轮手势。完整模组组合的兼容性仍需实测。
+Items that do not fit stay where they are. Mouse Tweaks gestures inside the bundle panel are not supported.
 
-## 构建与安装
+## Installation
 
-Windows PowerShell：
+Requires Minecraft 26.3.x, Fabric Loader 0.19.5 or newer, and Java 25.
+Place the mod jar in your client's `mods` folder. Remove older Better Bundle or Bundle Tab jars first; the mod ID remains `better-bundle`.
 
-```powershell
-.\gradlew.bat build
-```
-
-Linux 或 macOS：
+## Building
 
 ```sh
 ./gradlew build
+./gradlew runClientGameTest
 ```
 
-将 `build/libs/` 中不带 `-sources` 后缀的 `bundle-tab-*.jar` 放入客户端的 `mods` 目录，然后重启游戏。
+Use `gradlew.bat` on Windows. Builds require JDK 25; game tests also require a display. Jars are written to `build/libs`.
+Game tests include Mouse Tweaks by default; use `-PmouseTweaksTest=false` to run without it.
 
-Bundle Tab 沿用 `better-bundle` 模组 ID。安装前移除旧版 Better Bundle 或 Bundle Tab jar，避免重复加载。
+## Credits and license
 
-## 游戏测试
-
-测试需要可用的图形界面。默认使用 Mouse Tweaks 2.31 检查原版背包拖拽，同时验证配方书页签、搜索、物品转移、满背包和窗口尺寸变化。
-
-```powershell
-.\gradlew.bat runClientGameTest
-.\gradlew.bat runClientGameTest -PmouseTweaksTest=false
-```
-
-## 来源与许可
-
-基于 [zeroowo24/BetterBundleHUDMod](https://github.com/zeroowo24/BetterBundleHUDMod) 开发，保留上游提交历史。当前维护者为 [PluginsKers](https://github.com/PluginsKers)。
-
-项目沿用 [CC0-1.0](LICENSE)。内嵌的 pinyin4j 使用其独立许可证。
+Based on [BetterBundleHUDMod](https://github.com/zeroowo24/BetterBundleHUDMod) by zeroowo24. Maintained by PluginsKers under [CC0-1.0](LICENSE). Bundled pinyin4j retains its own license.
