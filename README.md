@@ -1,4 +1,4 @@
-![Bundle Tab](artwork/banner.png)
+![Bundle Tab](assets/banner.png)
 
 # Bundle Tab
 
@@ -35,3 +35,5 @@ Game tests include Mouse Tweaks by default; use `-PmouseTweaksTest=false` to run
 ## Credits and license
 
 Based on [BetterBundleHUDMod](https://github.com/zeroowo24/BetterBundleHUDMod) by zeroowo24. Maintained by PluginsKers under [CC0-1.0](LICENSE). Bundled pinyin4j retains its own license.
+
+The logo and banner use Minecraft artwork by Mojang Studios.
