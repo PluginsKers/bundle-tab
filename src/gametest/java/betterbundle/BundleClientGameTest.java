@@ -35,16 +35,20 @@ import org.lwjgl.sdl.SDLKeyboard;
 import java.util.List;
 
 public final class BundleClientGameTest implements FabricClientGameTest {
+    private static void setLanguage(ClientGameTestContext context, String language) {
+        context.runOnClient(client -> {
+            client.getLanguageManager().setSelected(language);
+            client.options.languageCode = language;
+            client.getLanguageManager().onResourceManagerReload(client.getResourceManager());
+        });
+        context.waitFor(client -> client.gui.overlay() == null);
+    }
+
     @Override
     public void runTest(ClientGameTestContext context) {
         context.getInput().resizeWindow(1280, 720);
         context.runOnClient(client -> { client.options.guiScale().set(2); client.resizeGui(); });
-        context.runOnClient(client -> {
-            client.getLanguageManager().setSelected("zh_cn");
-            client.options.languageCode = "zh_cn";
-            client.getLanguageManager().onResourceManagerReload(client.getResourceManager());
-        });
-        context.waitFor(client -> client.gui.overlay() == null);
+        setLanguage(context, "en_us");
         try (var world = context.worldBuilder().create()) {
             world.getServer().runOnServer(server -> {
                 var player = world.getConnection().getServerPlayer();
@@ -76,6 +80,7 @@ public final class BundleClientGameTest implements FabricClientGameTest {
                 check(!field(book(client), "filterButton", CycleButton.class).visible, "The bundle gallery hides the recipe filter");
             });
             context.takeScreenshot("recipebook-bundles");
+            setLanguage(context, "zh_cn");
 
             clickTab(context, false);
             context.getInput().resizeWindow(640, 480);
