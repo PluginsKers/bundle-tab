@@ -1,3 +1,5 @@
+![Bundle Tab](assets/banner.png)
+
 # Bundle Tab
 
 Browse your bundles in the vanilla recipe book. The bundle tab appears first and opens with your inventory. Also works at crafting tables, with no server mod required.
@@ -33,3 +35,5 @@ Game tests include Mouse Tweaks by default; use `-PmouseTweaksTest=false` to run
 ## Credits and license
 
 Based on [BetterBundleHUDMod](https://github.com/zeroowo24/BetterBundleHUDMod) by zeroowo24. Maintained by PluginsKers under [CC0-1.0](LICENSE). Bundled pinyin4j retains its own license.
+
+The logo and banner use Minecraft artwork by Mojang Studios.
