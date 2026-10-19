@@ -12,13 +12,7 @@ version = "${mod_version}+mc${minecraftVersion}"
 group = project.maven_group
 base { archivesName = 'bundle-tab' }
 
-repositories {
-    mavenCentral()
-    maven {
-        url = 'https://api.modrinth.com/maven'
-        content { includeGroup 'maven.modrinth' }
-    }
-}
+repositories { mavenCentral() }
 
 configurations {
     embed
@@ -42,19 +36,12 @@ stonecutter.replacements {
     }
     string(stonecutter.eval(minecraftVersion, '<26.2')) {
         replace('client.gui.screen()', 'client.screen')
-        replace('client.gui.overlay()', 'client.getOverlay()')
     }
     string(stonecutter.eval(minecraftVersion, '<26.3')) {
         replace('.itemCopies()', '.itemCopyStream()')
         replace('InputConstants.isKeyDown(InputConstants.KEY_SPACE)', 'InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_SPACE)')
     }
-    string(stonecutter.eval(minecraftVersion, '<26.2')) {
-        replace('Items.DYED_BUNDLE.red()', 'Items.RED_BUNDLE')
-        replace('Items.DYED_BUNDLE.blue()', 'Items.BLUE_BUNDLE')
-        replace('Items.DYED_BUNDLE.white()', 'Items.WHITE_BUNDLE')
-    }
     string(remapped) {
-        replace('client.resizeGui()', 'client.resizeDisplay()')
         replace('ContainerInput', 'ClickType')
         replace('handleContainerInput', 'handleInventoryMouseClick')
         replace('BundleItem.getSelectedItemIndex(', 'BundleItem.getSelectedItem(')
@@ -72,18 +59,8 @@ loom {
     }
 }
 
-fabricApi {
-    configureTests {
-        createSourceSet = true
-        modId = 'better-bundle-test'
-        enableGameTests = false
-        enableClientGameTests = true
-    }
-}
-
 dependencies {
     embed 'com.belerweb:pinyin4j:2.5.1'
-    add(remapped ? 'modGametestRuntimeOnly' : 'gametestRuntimeOnly', "maven.modrinth:mouse-tweaks:${mouse_tweaks_version}")
     minecraft "com.mojang:minecraft:${minecraftVersion}"
     if (remapped) mappings loom.officialMojangMappings()
     add(remapped ? 'modImplementation' : 'implementation', "net.fabricmc:fabric-loader:${loader_version}")

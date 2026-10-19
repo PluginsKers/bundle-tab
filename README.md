@@ -29,12 +29,10 @@ Download the jar matching your Minecraft version from [Releases](https://github.
 ## Building
 
 ```sh
-./gradlew build
-./gradlew :26.3:runClientGameTest
+./gradlew assemble
 ```
 
-Use `gradlew.bat` on Windows. Run Gradle with JDK 25; the Java 21 toolchain is downloaded when needed. Game tests require a display. `build` builds all versions; `:1.21.11:build` builds one. Jars are written to `versions/<minecraft>/build/libs`.
-Game tests include the matching Mouse Tweaks release.
+Use `gradlew.bat` on Windows. Run Gradle with JDK 25; the Java 21 toolchain is downloaded when needed. `assemble` builds all versions; `:1.21.11:assemble` builds one. Jars are written to `versions/<minecraft>/build/libs`.
 
 ## Credits and license
 
