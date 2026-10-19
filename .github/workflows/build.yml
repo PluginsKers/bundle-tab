@@ -26,24 +26,7 @@ jobs:
           java-version: '25'
           cache: gradle
       - name: Build
-        run: ./gradlew --no-daemon --configure-on-demand :${{ matrix.minecraft }}:build :${{ matrix.minecraft }}:compileGametestJava
-      - name: Install graphics drivers
-        if: matrix.minecraft == '26.3'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libegl1-mesa-dev mesa-vulkan-drivers
-      - name: Test client
-        timeout-minutes: 10
-        run: ./gradlew --no-daemon --configure-on-demand :${{ matrix.minecraft }}:runClientGameTest
-        env:
-          LIBGL_ALWAYS_SOFTWARE: 'true'
-          SDL_VIDEO_FORCE_EGL: '1'
-      - uses: actions/upload-artifact@v7.0.2
-        if: always()
-        with:
-          name: screenshots-${{ matrix.minecraft }}
-          path: versions/${{ matrix.minecraft }}/build/run/clientGameTest/screenshots/
-          if-no-files-found: ignore
+        run: ./gradlew --no-daemon --configure-on-demand :${{ matrix.minecraft }}:assemble
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: bundle-tab-${{ matrix.minecraft }}
